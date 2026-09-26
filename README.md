@@ -259,6 +259,7 @@ Bot: `@<TELEGRAM_BOT_USERNAME>`, con `polling: true`.
 | `/start` | Mensaje de bienvenida. |
 | `/start <token>` | Confirma una suscripción iniciada desde la web y vincula el chat al usuario. |
 | `/misuscripciones` | Lista las suscripciones **de Telegram** del chat, con un botón para cancelar cada una. |
+| `/unsuscribe` | Cancela **todas** las suscripciones de Telegram del chat y desvincula el chat del usuario (para volver a suscribirse hay que pasar otra vez por `/start <token>` desde la web). |
 
 > ⚠️ Telegram permite **un solo consumidor** de `getUpdates` por token. Si el backend local y producción corren a la vez, aparecen errores `409 Conflict` y se pierden confirmaciones. Ver [Desarrollo local](#desarrollo-local).
 

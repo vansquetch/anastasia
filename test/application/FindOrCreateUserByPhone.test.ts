@@ -10,6 +10,7 @@ describe("FindOrCreateUserByPhone", () => {
       findByPhone: vi.fn().mockResolvedValue(existing),
       findByTelegramChatId: vi.fn(),
       linkTelegramChatId: vi.fn(),
+      unlinkTelegramChatId: vi.fn(),
       reassignPhone: vi.fn(),
       save: vi.fn(),
     };
@@ -26,6 +27,7 @@ describe("FindOrCreateUserByPhone", () => {
       findByPhone: vi.fn().mockResolvedValue(null),
       findByTelegramChatId: vi.fn(),
       linkTelegramChatId: vi.fn(),
+      unlinkTelegramChatId: vi.fn(),
       reassignPhone: vi.fn(),
       save: vi.fn(),
     };

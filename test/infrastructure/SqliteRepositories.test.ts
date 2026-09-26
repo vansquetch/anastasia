@@ -136,6 +136,20 @@ describe("SqliteUserRepository", () => {
     expect(linked?.phone).toBe("555");
   });
 
+  it("desvincula el telegramChatId de un usuario", async () => {
+    const db = openDatabase(":memory:");
+    const repo = new SqliteUserRepository(db);
+
+    const user = User.create({ phone: "555" });
+    await repo.save(user);
+    await repo.linkTelegramChatId(user.id, "chat-1");
+
+    await repo.unlinkTelegramChatId(user.id);
+
+    expect(await repo.findByTelegramChatId("chat-1")).toBeNull();
+    expect((await repo.findByPhone("555"))?.telegramChatId).toBeNull();
+  });
+
   it("linkea el email de cuenta a un usuario", async () => {
     const db = openDatabase(":memory:");
     const repo = new SqliteUserRepository(db);

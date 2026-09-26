@@ -163,7 +163,8 @@ export function buildContainer(options: ContainerOptions = {}) {
 
   const pendingTelegramLinks = new PendingTelegramLinkStore();
 
-  const misuscripcionesHint = "Usá /misuscripciones cuando quieras ver o cancelar tus suscripciones por acá.";
+  const misuscripcionesHint =
+    "Usá /misuscripciones cuando quieras ver o cancelar tus suscripciones por acá, o /unsuscribe para cancelarlas todas.";
 
   // /start sin token (alguien abre el bot directo, sin venir de un deep link
   // de la web) — explica para qué sirve el bot y el comando de gestión.
@@ -232,6 +233,37 @@ export function buildContainer(options: ContainerOptions = {}) {
     await telegramBot.sendMessage(chatId, "Tus suscripciones activas por Telegram:", {
       reply_markup: { inline_keyboard: rows },
     });
+  });
+
+  // /unsuscribe cancela TODAS las suscripciones de Telegram del chat (mismo
+  // filtro por canal que /misuscripciones: WhatsApp/Email no se tocan) y
+  // desvincula el chatId del usuario, para que volver a suscribirse por
+  // Telegram exija pasar otra vez por el deep link /start <token>.
+  telegramBot.onText(/^\/(unsuscribe|unsubscribe)$/, async (msg) => {
+    const chatId = String(msg.chat.id);
+    const user = await userRepository.findByTelegramChatId(chatId);
+    if (!user) {
+      await telegramBot.sendMessage(chatId, "No tenés suscripciones activas por Telegram.");
+      return;
+    }
+
+    const allSubscriptions = await listUserSubscriptions.execute(user.id);
+    const subscriptions = allSubscriptions.filter(
+      (subscription) => subscription.channel === NotificationChannel.TELEGRAM
+    );
+    for (const subscription of subscriptions) {
+      await unsubscribeUser.execute(subscription.id, user.id);
+    }
+    await userRepository.unlinkTelegramChatId(user.id);
+
+    const summary =
+      subscriptions.length === 0
+        ? "No tenías suscripciones activas por Telegram, pero desvinculamos este chat."
+        : `Cancelamos ${subscriptions.length} ${subscriptions.length === 1 ? "suscripción" : "suscripciones"} por Telegram y desvinculamos este chat.`;
+    await telegramBot.sendMessage(
+      chatId,
+      `✅ ${summary} Ya no vas a recibir avisos por acá. Para volver a suscribirte, hacelo desde la web.`
+    );
   });
 
   telegramBot.on("callback_query", async (query) => {

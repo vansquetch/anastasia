@@ -45,6 +45,10 @@ export class SqliteUserRepository implements UserRepositoryPort {
       .run(telegramChatId, userId);
   }
 
+  async unlinkTelegramChatId(userId: string): Promise<void> {
+    this.db.prepare("UPDATE users SET telegram_chat_id = NULL WHERE id = ?").run(userId);
+  }
+
   async reassignPhone(fromUserId: string, toUserId: string): Promise<void> {
     const move = this.db.transaction((phone: string) => {
       this.db.prepare("UPDATE users SET phone = NULL WHERE id = ?").run(fromUserId);
