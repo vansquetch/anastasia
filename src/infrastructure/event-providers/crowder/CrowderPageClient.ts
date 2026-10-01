@@ -13,6 +13,9 @@ export interface CrowderPageClientOptions {
   pageUrl: string;
   cacheTtlMs: number;
   requestTimeoutMs?: number;
+  // Log de auditoría (ver FileLogger): registra qué ítems trajo cada fetch
+  // real, para detectar si la página cambió las claves o sirvió un captcha.
+  log?: (line: string) => void;
 }
 
 const DOT_CLASS_TO_STATUS: Record<string, CrowderStatusCode> = {
@@ -49,7 +52,18 @@ export class CrowderPageClient {
       return this.cachedItems;
     }
 
-    const items = await this.fetchAndParse();
+    let items: CrowderPageItem[];
+    try {
+      items = await this.fetchAndParse();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.options.log?.(`[crowder] fetch ${this.options.pageUrl} FALLÓ: ${message}`);
+      throw error;
+    }
+    this.options.log?.(
+      `[crowder] fetch ${this.options.pageUrl}: ${items.length} ítem(s)` +
+        (items.length > 0 ? ` — ${items.map((item) => `${item.key}=${item.statusCode}`).join(", ")}` : "")
+    );
     this.cachedItems = items;
     this.cachedAt = now;
     return items;
@@ -77,6 +91,7 @@ export class CrowderPageClient {
     }
 
     if (html.includes("page-captcha") && html.includes("request-captcha-container")) {
+      this.options.log?.(`[crowder] fetch ${this.options.pageUrl}: la respuesta trae contenedores de captcha`);
       console.warn(
         "[CrowderPageClient] la respuesta incluye contenedores de captcha; si los estados se ven raros, puede que se haya disparado un challenge en vez de servir el contenido real."
       );

@@ -19,6 +19,7 @@ import { BrevoEmailNotifier } from "../infrastructure/notifiers/brevo/BrevoEmail
 import { TelegramNotifier } from "../infrastructure/notifiers/telegram/TelegramNotifier";
 import { TwilioCallNotifier } from "../infrastructure/notifiers/twilio/TwilioCallNotifier";
 import { WhatsAppNotifier } from "../infrastructure/notifiers/whatsapp/WhatsAppNotifier";
+import { FileLogger } from "../infrastructure/logging/FileLogger";
 import { openDatabase } from "../infrastructure/persistence/sqlite/Database";
 import { SqliteEventStateRepository } from "../infrastructure/persistence/sqlite/SqliteEventStateRepository";
 import { SqliteSubscriptionRepository } from "../infrastructure/persistence/sqlite/SqliteSubscriptionRepository";
@@ -40,6 +41,7 @@ export interface ContainerOptions {
 export function buildContainer(options: ContainerOptions = {}) {
   const db = openDatabase(env.databasePath);
   const watchedEventsConfig = loadWatchedEventsConfig(env.watchedEventsFile);
+  const schedulerLog = new FileLogger(env.schedulerLogFile).log;
 
   const ticketmasterClient = new TicketmasterApiClient(env.ticketmasterApiKey, env.ticketmaster);
   const eventProvider = new TicketmasterEventProvider(ticketmasterClient);
@@ -101,7 +103,12 @@ export function buildContainer(options: ContainerOptions = {}) {
       activeFrom: parseOptionalDate(item.activeFrom, `watched-events.json (ticketmaster:${item.id})`),
       activeUntil: parseOptionalDate(item.activeUntil, `watched-events.json (ticketmaster:${item.id})`),
     }));
-    schedulers.push(new PollingScheduler(ticketmasterWatched, env.pollingIntervalSeconds, checkEventAvailability));
+    schedulers.push(
+      new PollingScheduler(ticketmasterWatched, env.pollingIntervalSeconds, checkEventAvailability, {
+        name: "ticketmaster",
+        log: schedulerLog,
+      })
+    );
 
     for (const item of watchedEventsConfig.ticketmaster) {
       watchedEvents.push({
@@ -128,6 +135,7 @@ export function buildContainer(options: ContainerOptions = {}) {
     const crowderClient = new CrowderPageClient({
       pageUrl,
       cacheTtlMs: env.crowder.pageCacheTtlSeconds * 1000,
+      log: schedulerLog,
     });
     const pageSlug = crowderPageSlug(pageUrl);
     const crowderProvider = new CrowderEventProvider(
@@ -147,7 +155,10 @@ export function buildContainer(options: ContainerOptions = {}) {
       activeUntil: parseOptionalDate(item.activeUntil, `watched-events.json (${crowderEventId(pageSlug, item.id)})`),
     }));
     schedulers.push(
-      new PollingScheduler(crowderWatched, env.crowder.pollingIntervalSeconds, checkCrowderAvailability)
+      new PollingScheduler(crowderWatched, env.crowder.pollingIntervalSeconds, checkCrowderAvailability, {
+        name: `crowder:${pageSlug}`,
+        log: schedulerLog,
+      })
     );
 
     for (const item of items) {

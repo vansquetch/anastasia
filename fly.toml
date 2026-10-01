@@ -12,6 +12,7 @@ primary_region = "gru"
 [env]
   API_PORT = "3001"
   DATABASE_PATH = "/data/event-watcher.sqlite"
+  SCHEDULER_LOG_FILE = "/data/scheduler.log"
   STATIC_DIR = "/app/public"
   POLLING_INTERVAL_SECONDS = "15"
   CROWDER_POLLING_INTERVAL_SECONDS = "60"

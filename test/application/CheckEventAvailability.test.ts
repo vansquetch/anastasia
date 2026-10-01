@@ -34,7 +34,12 @@ describe("CheckEventAvailability", () => {
     const useCase = new CheckEventAvailability(eventProvider, eventStateRepository, notifySubscribers);
     const result = await useCase.execute("ticketmaster:1");
 
-    expect(result).toEqual({ changed: true, newStatus: EventStatus.ONSALE });
+    expect(result).toEqual({
+      changed: true,
+      newStatus: EventStatus.ONSALE,
+      previousStatus: EventStatus.OFFSALE,
+      notifications: { sent: 0, failed: 0 },
+    });
     expect(notifySubscribers.execute).toHaveBeenCalledOnce();
     expect(eventStateRepository.saveStatus).toHaveBeenCalledWith("ticketmaster:1", EventStatus.ONSALE);
   });

@@ -36,6 +36,9 @@ export const env = {
   watchedEventsFile: process.env.WATCHED_EVENTS_FILE ?? "./config/watched-events.json",
 
   pollingIntervalSeconds: optionalEnvInt("POLLING_INTERVAL_SECONDS", 15),
+  // Log de auditoría de los schedulers (un latido por tick + resultado de
+  // cada revisión). En Fly va al volumen para sobrevivir a reinicios.
+  schedulerLogFile: process.env.SCHEDULER_LOG_FILE ?? "./data/scheduler.log",
 
   // Rate limiting / reintentos contra Ticketmaster Discovery API — ajustable
   // por configuración sin tocar código, ya que el tier/cuota puede cambiar.
